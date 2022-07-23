@@ -9,7 +9,7 @@ This item allows its user to skip time for at most ten seconds. Only the player 
 
 The mod integrates the AIsaac bot as to mimic what the player &quot;would have done&quot; during the erased time frame, so give it some slack if it acts weirdly :p
 
-TODO: improve bot (maybe try to replace the bot with a GA heuristic approach?), add more synergies
+TODO: improve bot (maybe try to replace the bot with a GA heuristic approach?), add more synergies, make compatible with older game versions (at least on my testing it did not work if repentance was not installed)
 
 Huge thanks to Nato Potato for allowing me to use his AIsaac mod as the base code for the bot.</description>
     <version>1.1</version>
