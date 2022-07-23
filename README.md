@@ -1,3 +1,5 @@
+[![Steam Downloads](https://img.shields.io/steam/downloads/2839214603?color=blue&label=Downloads&logo=steam&logoColor=white)](https://steamcommunity.com/sharedfiles/filedetails/?id=2839214603)
+
 # Description
 
 Remain on top of fate with this item!
