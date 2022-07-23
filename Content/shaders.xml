@@ -1,0 +1,305 @@
+<shaders>
+    <shader name="Cosmos">
+        <parameters>
+            <param name="Time" type="float"/>
+            <param name="Enabled" type="float"/>
+            <param name="HUDOffset" type="float"/>
+        </parameters>
+        <vertex><![CDATA[
+            attribute vec3 Position;
+            attribute vec4 Color;
+            attribute vec2 TexCoord;
+            attribute vec4 RenderData;
+            attribute float Scale;
+            attribute float Time;
+            attribute float Enabled;
+            attribute float HUDOffset;
+            varying vec3 PosOut;
+            varying vec4 Color0;
+            varying vec2 TexCoord0;
+            varying vec4 RenderDataOut;
+            varying float ScaleOut;
+            varying float TimeOut;
+            varying float EnabledOut;
+            varying float HUDOffsetOut;
+            uniform mat4 Transform;
+            void main(void)
+            {
+                PosOut = Position;
+                RenderDataOut = RenderData;
+                ScaleOut = Scale;
+                Color0 = Color;
+                TexCoord0 = TexCoord;
+                // passing args
+                TimeOut = Time;
+                EnabledOut = Enabled;
+                HUDOffsetOut = HUDOffset;
+
+                gl_Position = Transform * vec4(Position.xyz, 1.0);
+            }
+        ]]></vertex>
+        <fragment><![CDATA[
+            varying lowp vec3 PosOut;
+            varying lowp vec4 Color0;
+            varying mediump vec2 TexCoord0;
+            varying lowp vec4 RenderDataOut;
+            varying lowp float ScaleOut;
+            varying lowp float TimeOut;
+            varying lowp float EnabledOut;
+            varying lowp float HUDOffsetOut;
+            uniform sampler2D Texture0;
+
+            struct Star
+            {
+                float mask;
+                vec2 pos;
+                vec3 color;
+                float size;
+                float blinkSpeed;
+                float blinkOffset;
+            };
+
+            float rand(float co, float a, float b)
+            {
+                return fract(sin(co*(a)) * b);
+            }
+            float rand(vec2 co, float a, float b, float c)
+            {
+                return fract(sin(dot(co.xy ,vec2(a,b))) * c);
+            }
+            float rand(vec3 co, float a, float b, float c)
+            {
+                return rand(co.xy+rand(co.z, a, b), a, b, c);
+            }
+
+            // All components are in the range [0…1], including hue.
+            vec3 hsv2rgb(vec3 c)
+            {
+                vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+                vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+                return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+            }
+
+            float blur_mask(vec2 uv)
+            {
+                float sum = 0.0f;
+                for(float i=-1.0f; i <= 1.0f; i++)
+                {
+                    for(float j=-1.0f; j <= 1.0f; j++)
+                    {
+                        float eps = 0.03f;
+                        sum += texture(Texture0, uv + eps * vec2(i,j)).r;
+                    }
+                }
+                return sum / 9.0f;
+            }
+
+            Star generate_star(vec3 cell_id)
+            {
+                const vec3 starColorHSV = vec3(196.0f / 360.0f, 86.0f / 100.0f, 97.0f / 100.0f);
+
+                float rnd1 = rand(cell_id, 12.3213, 53.13214, 531431.13413);
+                float rnd2 = rand(cell_id, 764.312, 123.321313, 4143.31231);
+                float rnd3 = rand(cell_id, 53.1341, 631.1312, 5136.513);
+                float rnd4 = rand(cell_id, 15.1234, 51.3123, 7422.3123);
+                float rnd5 = rand(cell_id, 512.321, 123.312, 875875.142);
+                float rnd6 = rand(cell_id, 13.312, 87.3213, 16132.1234);
+                float rnd7 = rand(cell_id, 313.123, 977.123, 61232.1563);
+
+                Star s;
+                s.pos = vec2(rnd1, rnd2);
+                s.size = 0.1 + 0.2 * rnd6;
+                s.blinkSpeed = 0.7f + rnd3 * 5.0f;
+                s.blinkOffset = rnd4;
+                s.mask = step(0.7f, rnd5);
+                s.color = hsv2rgb(starColorHSV + vec3(0.0f, -rnd7 * 0.5, rnd7 * 0.2));
+                return s;
+            }
+
+            float star_mask(vec2 uv, Star star)
+            {
+                // normalize uv
+                uv = 2.0f * uv - 1.0f;
+                uv -= star.pos.x;
+
+                // Calculate fade
+                float fade_value = sin(TimeOut * star.blinkSpeed + star.blinkOffset);
+                fade_value = 0.5 * fade_value + 0.5; // [0,1]
+                fade_value = 0.5 * fade_value + 0.5; // [0.5,1]
+
+                // Star mask
+                float d1 = length(uv);
+                float d2 = abs(uv.x) + abs(uv.y);
+                float d = mix(d1,d2,1.0 / fade_value * 3.0 * length(uv));
+                float mask = 1.0f - d / star.size;
+                mask *= star.mask;
+
+                // apply blink
+                mask *= fade_value;
+
+                return max(0.0f, mask);
+            }
+
+            vec3 star_layer(vec2 uv, float layerIndex)
+            {
+                vec3 color = vec3(0.0f);
+                float starNumFactor = 15.0f + layerIndex * 15.0f;
+                float starTint = max(1.0 - 0.4 * layerIndex, 0.0);
+
+                vec2 layer_uv = fract(uv * starNumFactor);
+                vec2 layer_id = floor(uv * starNumFactor);
+
+                for(float i = -1.0f; i <= 1.0f; i++)
+                {
+                    for(float j = -1.0f; j <= 1.0f; j++)
+                    {
+                        vec3 cell_id = vec3(layer_id + vec2(i,j), layerIndex);
+                        Star star = generate_star(cell_id);
+                        vec2 uv = layer_uv - vec2(i,j);
+                        color += star_mask(uv, star) * star.color * starTint;
+                    }
+                }
+                return color;
+            }
+
+            void main(void)
+            {
+                // Setup
+                vec2 global_uv = gl_FragCoord / RenderDataOut.xy;
+                global_uv.x *= RenderDataOut.x / RenderDataOut.y;
+                vec4 Color = Color0 * texture2D(Texture0, TexCoord0);
+
+                if (EnabledOut == 1 && ((Color.r == 0.0f && Color.g == 0.0f && Color.b == 0.0f) ||
+                    (Color.a != 1.0f &&
+
+                    // stats HUD
+                    !(PosOut.x <= 35 + 20*HUDOffsetOut
+                    && PosOut.y <= 185 + 12*HUDOffsetOut && PosOut.y >= 90 + 12*HUDOffsetOut)
+
+                    // timer HUD
+                    //&& !(PosOut.y <= 38 + 20*HUDOffsetOut && PosOut.y >= 5 + 25*HUDOffsetOut
+                    //&& PosOut.x >= 200 && PosOut.x <= 280 && ToggleOut == 1)
+
+                    )))
+                {
+                    // Background
+                    vec3 bgColor1 = vec3(7.0f/255.0f, 17.0f/255.0f, 26.0f/255.0f);
+                    vec3 bgColor2 = vec3(2.0f/255.0f, 7.0f/255.0f, 18.0f/255.0f);
+                    float bgMask = blur_mask(fract(global_uv * 1.5f));
+                    vec3 finalColor = mix(bgColor2, bgColor1, bgMask);
+
+                    // Star layers
+                    for(float i = 0.0f; i < 3; i++)
+                    {
+                        // Space movement
+                        float shiftAngle = 38.0f;
+                        vec2 shiftDirection = vec2(cos(shiftAngle), sin(shiftAngle));
+                        float shiftSpeed = 0.00005f / (1.0f + 2.0f * i);
+                        vec2 star_layer_uv = shiftDirection * (shiftSpeed * TimeOut) + global_uv;
+
+                        finalColor += star_layer(star_layer_uv, i);
+                    }
+                    // Final
+                    Color = vec4(finalColor, 1.0);
+                }
+                gl_FragColor = Color;
+            }
+        ]]></fragment>
+    </shader>
+    <shader name="Flash">
+        <parameters>
+            <param name="Time" type="float"/>
+            <param name="Enabled" type="float"/>
+            <param name="PlayerPositionX" type="float"/>
+            <param name="PlayerPositionY" type="float"/>
+            <param name="GlowStrength" type="float"/>
+        </parameters>
+        <vertex><![CDATA[
+            attribute vec3 Position;
+            attribute vec4 Color;
+            attribute vec2 TexCoord;
+            attribute vec4 RenderData;
+            attribute float Scale;
+            attribute float Time;
+            attribute float Enabled;
+            attribute float PlayerPositionX;
+            attribute float PlayerPositionY;
+            attribute float GlowStrength;
+            varying vec3 PosOut;
+            varying vec4 Color0;
+            varying vec2 TexCoord0;
+            varying vec4 RenderDataOut;
+            varying float ScaleOut;
+            varying float TimeOut;
+            varying float EnabledOut;
+            varying float PlayerPositionOutX;
+            varying float PlayerPositionOutY;
+            varying float GlowStrengthOut;
+            uniform mat4 Transform;
+            void main(void)
+            {
+                PosOut = Position;
+                RenderDataOut = RenderData;
+                ScaleOut = Scale;
+                Color0 = Color;
+                TexCoord0 = TexCoord;
+                // passing args
+                TimeOut = Time;
+                EnabledOut = Enabled;
+                PlayerPositionOutX = PlayerPositionX;
+                PlayerPositionOutY = PlayerPositionY;
+                GlowStrengthOut = GlowStrength;
+
+                gl_Position = Transform * vec4(Position.xyz, 1.0);
+            }
+        ]]></vertex>
+        <fragment><![CDATA[
+            varying lowp vec3 PosOut;
+            varying lowp vec4 Color0;
+            varying mediump vec2 TexCoord0;
+            varying lowp vec4 RenderDataOut;
+            varying lowp float ScaleOut;
+            varying lowp float TimeOut;
+            varying lowp float EnabledOut;
+            varying lowp float PlayerPositionOutX;
+            varying lowp float PlayerPositionOutY;
+            varying lowp float GlowStrengthOut;
+            uniform sampler2D Texture0;
+
+            vec2 resize(vec2 uv, vec3 p)
+            {
+                vec2 k = vec2(mix(0., (p.z - 1), p.x), mix(0., (p.z - 1.), p.y));
+                return uv * p.z - k;
+            }
+
+            void main()
+            {
+                vec2 focus = vec2(0.4, 0.30);
+                vec2 uv = TexCoord0;
+                vec4 Color = Color0 * texture(Texture0, uv);
+
+                if (EnabledOut == 1)
+                {
+                    vec2 layeruv = uv;
+                    vec3 layercol;
+                    float c, sc, L;
+                    for (float i = 0.; i < 250.; i++)
+                    {
+                        sc = i / 250.;
+                        L = mix(.95, -.1, sc);
+                        layeruv = resize(uv, vec3(focus, L));
+                        layercol += mix(vec3(0.),
+                            texture(Texture0, layeruv).rgb * 2.,
+                            mix(sc, 1. - sc, GlowStrengthOut));
+                        c += 1.;
+                    }
+                    layercol /= c;
+                    layercol = clamp(layercol * 1.15 - 0.45, 0., 1.);
+
+                    Color += vec4(layercol.r * .4, layercol.b * .5, layercol.g * 0.8, 1.);
+                }
+                gl_FragColor = Color;
+            }
+        ]]></fragment>
+    </shader>
+</shaders>

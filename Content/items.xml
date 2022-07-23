@@ -1,0 +1,3 @@
+<items gfxroot="gfx/items/" version="1">
+	<active  name="Tape splicer" description="King Crimson!" gfx="Tape splicer.png" maxcharges="2" quality="4"/>
+</items>

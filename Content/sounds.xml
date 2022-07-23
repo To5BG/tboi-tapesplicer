@@ -1,0 +1,17 @@
+<sounds root="sfx/">
+    <sound name="KCWindup1">
+        <sample weight="1" path="KCWindup1.wav"/>
+    </sound>
+    <sound name="KCWindup2">
+        <sample weight="1" path="KCWindup2.wav"/>
+    </sound>
+    <sound name="KCIntro1">
+        <sample weight="1" path="KCIntro1.wav"/>
+    </sound>
+    <sound name="KCIntro2">
+        <sample weight="1" path="KCIntro2.wav"/>
+    </sound>
+    <sound name="KCOutro">
+        <sample weight="1" path="KCOutro.wav"/>
+    </sound>
+</sounds>

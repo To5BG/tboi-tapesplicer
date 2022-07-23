@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+    <name>Tape Splicer (KINGU KURIMUZON) Dev</name>
+    <directory>tapesplicer</directory>
+    <id>2839214603</id>
+    <description>Remain on top of fate with this item!
+
+This item allows its user to skip time for at most ten seconds. Only the player is aware of what is happening, and everything else acts as it would have previously. The player becomes intangible and can move wherever he wants, readjusting his &quot;fated&quot; actions.
+
+The mod integrates the AIsaac bot as to mimic what the player &quot;would have done&quot; during the erased time frame, so give it some slack if it acts weirdly :p
+
+TODO: improve bot (maybe try to replace the bot with a GA heuristic approach?), add more synergies
+
+Huge thanks to Nato Potato for allowing me to use his AIsaac mod as the base code for the bot.</description>
+    <version>1.1</version>
+    <visibility>Public</visibility>
+    <tag id="Lua"/>
+    <tag id="Active Items"/>
+    <tag id="Graphics"/>
+    <tag id="Shaders"/>
+    <tag id="Sound Effects"/>
+</metadata>
