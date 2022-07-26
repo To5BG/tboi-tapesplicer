@@ -1816,16 +1816,10 @@ function TimeSplice:onShaders(s)
 			--,Toggle = toggledTCS and 1 or 0
 		}
 	elseif s == "Flash" then
-		local pos = Isaac.GetPlayer(playerID).Position
-		while (pos.X > 570) do pos.X = pos.X - 570 end
-		while (pos.Y > 430) do pos.Y = pos.Y - 430 end
-
 		return {
 			Time = Isaac.GetFrameCount(),
 			Enabled = (counter >= 345 and counter <= 352) and 1 or 0,
-			GlowStrength = glowLookup[353 - counter],
-			PlayerPositionX = pos.X,
-			PlayerPositionY = pos.Y
+			GlowStrength = glowLookup[353 - counter]
 		}
 	end
 
