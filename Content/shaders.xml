@@ -211,6 +211,7 @@
             <param name="Time" type="float"/>
             <param name="Enabled" type="float"/>
             <param name="GlowStrength" type="float"/>
+            <param name="PlayerPos" type="vec2"/>
         </parameters>
         <vertex><![CDATA[
             attribute vec3 Position;
@@ -221,6 +222,7 @@
             attribute float Time;
             attribute float Enabled;
             attribute float GlowStrength;
+            attribute vec2 PlayerPos;
             varying vec3 PosOut;
             varying vec4 Color0;
             varying vec2 TexCoord0;
@@ -229,6 +231,7 @@
             varying float TimeOut;
             varying float EnabledOut;
             varying float GlowStrengthOut;
+            varying vec2 PlayerPosOut;
             uniform mat4 Transform;
             void main(void)
             {
@@ -241,6 +244,7 @@
                 TimeOut = Time;
                 EnabledOut = Enabled;
                 GlowStrengthOut = GlowStrength;
+                PlayerPosOut = PlayerPos;
 
                 gl_Position = Transform * vec4(Position.xyz, 1.0);
             }
@@ -254,19 +258,21 @@
             varying lowp float TimeOut;
             varying lowp float EnabledOut;
             varying lowp float GlowStrengthOut;
+            varying lowp vec2 PlayerPosOut;
             uniform sampler2D Texture0;
 
             vec2 resize(vec2 uv, vec3 p)
             {
-                vec2 k = vec2(mix(0., (p.z - 1), p.x), mix(0., (p.z - 1.), p.y));
+                vec2 k = vec2(mix(0., (p.z - 1.), p.x), mix(0., (p.z - 1.), p.y));
                 return uv * p.z - k;
             }
 
             void main()
             {
-                vec2 focus = vec2(0.45, 0.3);
+                vec2 focus = PlayerPosOut + vec2(-.02, -.1);
+                focus.y *= RenderDataOut.y / RenderDataOut.x;
                 vec2 uv = TexCoord0;
-                vec4 Color = Color0 * texture(Texture0, uv);
+                vec4 Color = texture(Texture0, uv);
 
                 if (EnabledOut == 1)
                 {
@@ -276,7 +282,7 @@
                     for (float i = 0.; i < 250.; i++)
                     {
                         sc = i / 250.;
-                        L = mix(.95, -.1, sc);
+                        L = mix(1., .35, sc);
                         layeruv = resize(uv, vec3(focus, L));
                         layercol += mix(vec3(0.),
                             texture(Texture0, layeruv).rgb * 2.,
@@ -284,11 +290,12 @@
                         c += 1.;
                     }
                     layercol /= c;
-                    layercol = clamp(layercol * 1.15 - 0.45, 0., 1.);
+                    layercol = clamp(layercol * 5. - 2.5 / 2., 0., 1.);
 
-                    Color += vec4(layercol.r * .4, layercol.b * .5, layercol.g * 0.8, 1.);
+                    Color = texture2D(Texture0, uv);
+                    Color += vec4(layercol.r * .4, layercol.b * .4, layercol.g * .6, 1.);
                 }
-                gl_FragColor = Color;
+                gl_FragColor = Color0 * Color;
             }
         ]]></fragment>
     </shader>
