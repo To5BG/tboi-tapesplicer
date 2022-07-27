@@ -69,14 +69,14 @@ local roomIndex = 0
 local weaponType = {1, 1, 1, 1} -- 1 tear, 2 laser, 3 knife, 4 bomb, 5 rockets, 6 mlung
 local canShootCharged = {false, false, false, false} -- lasers
 local canShootChargedLong = {false, false, false, false} -- rockets, knives
-local lastShotLaser = {}
+local lastShotLaser = { }
 local laserRange = {0, 0, 0, 0}
 local updateLaserRange = {false, false, false, false}
 local entColClass = nil
 local gridColClass = nil
 local closestEnemy = nil
 local shotmultiplier = 1
-local gridEntOnCol = {}
+local gridEntOnCol = { }
 local correctionFactor = 20
 --local toggledTCS = false
 
@@ -233,6 +233,9 @@ function TimeSplice:tick()
 	if counter >= 359 and counter <= 370 then TimeSplice:redFlash() end
 	-- dont conrol ai if still during windup
 	if counter > 345 then return end
+
+	-- get room
+	local currentRoom = Game():GetLevel():GetCurrentRoom()
 
 	-- make player intangible
 	player.EntityCollisionClass = EntityCollisionClass.ENTCOLL_PLAYERONLY
@@ -440,7 +443,6 @@ function TimeSplice:tick()
 
 	--handle AI behaviour
 	ignoreenemiesitems = false
-	local currentRoom = Game():GetLevel():GetCurrentRoom()
 
 	currentRoom:InvalidatePickupVision()
 	--get entity positions and determine actions
@@ -664,7 +666,7 @@ function TimeSplice:tick()
 							end
 						end
 					--if at a tinted rock bomb it
-					elseif gridReact == 1 and bombcooldown < 1 and bombcount > 0 and gridEntity:ToRock() ~= nil and gridEntity.State ~= 2 and gridEntity.Position:Distance(currPos) < 40 then
+					elseif gridReact == 1 and bombcooldown < 1 and bombcount > 3 and gridEntity:ToRock() ~= nil and gridEntity.State ~= 2 and gridEntity.Position:Distance(currPos) < 60 then
 						TimeSplice:bomb(player)
 					end
 				end
@@ -1681,8 +1683,8 @@ function TimeSplice:redFlash()
 	if counter == 359 then room:SetWallColor(Color(1, 1, 1, 1, 0, 0, 0)) end
 end
 
-function TimeSplice:onUse(_, _, player, _, _, _)
-	if counter ~= 0 then return {
+function TimeSplice:onUse(_, _, player, flags)
+	if counter ~= 0 or (flags & UseFlag.USE_CARBATTERY ~= 0) then return {
 		Discharge = false,
 		Remove = false,
 		ShowAnim = false
@@ -1831,7 +1833,7 @@ function TimeSplice:onCacheEval(ent, flag)
 	local id = TimeSplice:getPlayerId(ent)
 	if flag == CacheFlag.CACHE_WEAPON then
 		--if ent:HasWeaponType(WeaponType.WEAPON_MONSTROS_LUNGS) then
-			--weaponType[id + 1] = 6
+		--weaponType[id + 1] = 6
 		if ent:HasWeaponType(WeaponType.WEAPON_ROCKETS) then
 			weaponType[id + 1] = 5
 		elseif ent:HasWeaponType(WeaponType.WEAPON_KNIFE) then
