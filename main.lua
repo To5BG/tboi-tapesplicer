@@ -39,9 +39,9 @@ local avoidotherplayers = true
 local followplayer1 = true
  --0 for off, 1 for player1 only, 2 for all ais
 local getPickups = 2
-local usePillsCards = 2
+local usePillsCards = 0
 local getItems = 2
-local getTrinkets = 2
+local getTrinkets = 0
 local useItems = 0
 local pressButtons = 2
 local moveToDoors = 2
@@ -800,6 +800,14 @@ function TimeSplice:tick()
 						--dont go for beds if they cant be used
 					elseif entity.Variant == 99 and (player:GetNumCoins() < 1 or entity.SubType == 0) then
 						--dont go for paychests if not enough coins
+					------------------------------------------------
+					elseif entity.Variant >= 51 and entity.Variant <= 60 and entity.Variant ~= 56 then
+						-- dont go for any chest but regular and wooden chest
+					elseif entity.Variant == PickupVariant.PICKUP_THROWABLEBOMB then
+						-- dont go for throwables
+					elseif entity.Variant == PickupVariant.PICKUP_GRAB_BAG then
+						-- dont go for sacks (unintended)
+					------------------------------------------------
 					else
 						local distance = entity.Position:Distance(currPos)
 						--get closest item
@@ -950,7 +958,7 @@ function TimeSplice:tick()
 				end
 			end
 			--bomb blue/purple fires
-			if bombThings > multisettingmin and entity.Type == 33 and entity.HitPoints > 1 and entity.Variant > 1 and entity.Variant ~= 4 and bombcooldown < 1 and bombcount > 0 then
+			if bombThings > multisettingmin and entity.Type == 33 and entity.HitPoints > 1 and entity.Variant > 1 and entity.Variant ~= 4 and bombcooldown < 1 and bombcount > 3 then
 				if currentRoom:IsClear() then
 					moveX[playerID+1] = 0
 					moveY[playerID+1] = 0
@@ -1617,7 +1625,7 @@ function TimeSplice:takePickup(ent, playerEnt)
 		elseif sub == BombSubType.BOMB_DOUBLEPACK then playerEnt:AddBombs(2)
 		elseif sub == BombSubType.BOMB_GOLDEN then playerEnt:AddGoldenBomb() end
 
-	elseif var == PickupVariant.PICKUP_CHEST then
+	elseif var == PickupVariant.PICKUP_CHEST or var == PickupVariant.PICKUP_WOODENCHEST then
 		ent:TryOpenChest(playerEnt)
 
 	elseif var == PickupVariant.PICKUP_LIL_BATTERY then
@@ -1631,10 +1639,11 @@ function TimeSplice:takePickup(ent, playerEnt)
 		else playerEnt:SetActiveCharge(playerEnt:GetActiveCharge() + charge) end
 
 		sfx:Play(SoundEffect.SOUND_BATTERYCHARGE)
+
 	end
 
 	ent:PlayPickupSound()
-	ent:Remove()
+	if var ~= PickupVariant.PICKUP_CHEST and var ~= PickupVariant.PICKUP_WOODENCHEST then ent:Remove() end
 end
 
 --make ai move towards something, diagonally first then straight line
