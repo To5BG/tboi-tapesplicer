@@ -247,7 +247,10 @@ function TimeSplice:tick()
 	local sData = Game():GetLevel():GetCurrentRoomDesc().Data
 	local currPos = cloneSig
 	local currVel = Vector(player.MoveSpeed * moveX[playerID + 1] * 6, player.MoveSpeed * moveY[playerID + 1] * 6)
-	cloneSig = currPos + currVel
+	if goaroundrockspits and currentRoom:GetGridEntityFromPos(currPos + currVel) then
+		cloneSig = currPos
+	else cloneSig = currPos + currVel end
+
 	-- position bound
 	cloneSig = Vector(
 			math.min(math.max(cloneSig.X, 70), 70 + sData.Width * 38.5),
@@ -1198,10 +1201,11 @@ function TimeSplice:tick()
 		end
 	end
 	--go around rocks if doesnt have flying
-	if player.CanFly == false and goaroundrockspits and enemydistance > 100 then
+	if goaroundrockspits and enemydistance > 1000 then
 		rockavoidwarmup = rockavoidwarmup + 1
-		if rockavoidwarmup > 20 and (moveX[playerID+1] ~= 0 or moveY[playerID+1] ~= 0) then
-			if math.abs(player.Position.X - lastplayerpos[playerID+1].X) < 0.05 and math.abs(player.Position.Y -  lastplayerpos[playerID+1].Y) < 0.05 then
+		if rockavoidwarmup > 100 then goaroundrockspits = false
+		elseif rockavoidwarmup > 20 and (moveX[playerID+1] ~= 0 or moveY[playerID+1] ~= 0) then
+			if math.abs(clone.Position.X - lastplayerpos[playerID+1].X) < 0.05 and math.abs(clone.Position.Y -  lastplayerpos[playerID+1].Y) < 0.05 then
 				--once its determined that the current path is blocked select a new direction to move
 				--check if it already tried one of the directions and got stuck in the same spot, try different direction
 				if (moveX[playerID+1] == 1 and moveY[playerID+1] == 1) then
@@ -1267,31 +1271,31 @@ function TimeSplice:tick()
 			--but try not to accidentally leave the room while finding a new path
 			if rockstuckcooldown[playerID+1] > 0 then
 				if aroundrockdirection[playerID+1] == 1 then
-					if player.Position.X - topleft.X > 30 then
+					if clone.Position.X - topleft.X > 30 then
 						moveX[playerID+1] = -1
 					end
-					if bottomright.Y - player.Position.Y > 30 then
+					if bottomright.Y - clone.Position.Y > 30 then
 						moveY[playerID+1] = 1
 					end
 				elseif aroundrockdirection[playerID+1] == 2 then
-					if player.Position.X - topleft.X > 30 then
+					if clone.Position.X - topleft.X > 30 then
 						moveX[playerID+1] = -1
 					end
-					if player.Position.Y - topleft.Y > 30 then
+					if clone.Position.Y - topleft.Y > 30 then
 						moveY[playerID+1] = -1
 					end
 				elseif aroundrockdirection[playerID+1] == 3 then
-					if bottomright.X - player.Position.X > 30 then
+					if bottomright.X - clone.Position.X > 30 then
 						moveX[playerID+1] = 1
 					end
-					if bottomright.Y - player.Position.Y > 30 then
+					if bottomright.Y - clone.Position.Y > 30 then
 						moveY[playerID+1] = 1
 					end
 				elseif aroundrockdirection[playerID+1] == 4 then
-					if bottomright.X - player.Position.X > 30 then
+					if bottomright.X - clone.Position.X > 30 then
 						moveX[playerID+1] = 1
 					end
-					if player.Position.Y - topleft.Y > 30 then
+					if clone.Position.Y - topleft.Y > 30 then
 						moveY[playerID+1] = -1
 					end
 				end
@@ -1872,6 +1876,9 @@ function TimeSplice:resetVals(player)
 	end
 	canShootCharged = {false, false, false, false}
 	updateLaserRange = {false, false, false, false}
+	if not goaroundrockspits and not Isaac.GetPlayer(playerID).CanFly then
+		goaroundrockspits = true
+	end
 end
 
 local glowLookup = {0.9, 0.7, 0.7, 0.5, 0.1, 0.7, 0.9, 0.9}
@@ -1919,6 +1926,8 @@ function TimeSplice:onCacheEval(ent, flag)
 		ent.Damage = ent.Damage / 2
 	elseif flag == CacheFlag.CACHE_FIREDELAY then
 		shotmultiplier = TimeSplice:getShotMultiplier(ent)
+	elseif flag == CacheFlag.CACHE_FLYING and goaroundrockspits then
+		goaroundrockspits = not ent.CanFly
 	end
 end
 
