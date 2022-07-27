@@ -38,7 +38,7 @@ local goaroundrockspits = true
 local avoidotherplayers = true
 local followplayer1 = true
  --0 for off, 1 for player1 only, 2 for all ais
-local getPickups = 0
+local getPickups = 2
 local usePillsCards = 2
 local getItems = 2
 local getTrinkets = 2
@@ -78,6 +78,8 @@ local closestEnemy = nil
 local shotmultiplier = 1
 local gridEntOnCol = { }
 local correctionFactor = 20
+local activeItemIds = {0, 0, 0, 0}
+local activeItemCharges = {0, 0, 0, 0}
 --local toggledTCS = false
 
 function TimeSplice:tick()
@@ -772,7 +774,8 @@ function TimeSplice:tick()
 						if entity.Position:Distance(currPos) < 70 then
 							TimeSplice:goaround(currPos, entity.Position, 35)
 						end
-					elseif entity.Variant == 90 and (player:GetActiveItem() < 15 or player:NeedsCharge() == false) then
+					elseif entity.Variant == 90 and (entity.SubType == BatterySubType.BATTERY_GOLDEN or
+							player:NeedsCharge() == false or player:GetActiveCharge() == activeItemCharges[playerID + 1]) then
 						--dont get batteries
 					elseif getItems > multisettingmin and (useItems <= multisettingmin or player:GetActiveItem() > 0) and entity.Variant == 100 and Isaac.GetItemConfig():GetCollectible(entity.SubType).Type == 3 then
 						--dont get active items
@@ -805,13 +808,15 @@ function TimeSplice:tick()
 							pickupdistance = distance
 							if distance > 15 then
 								TimeSplice:simplemovetowards(currPos, entity.Position, 10)
+							else
+								TimeSplice:takePickup(entity:ToPickup(), player)
 							end
 							--let ai move away from paychest to be able to pay more
 							if entity.Variant == 99 and entity:GetSprite():IsPlaying("Pay") and entity.Position:Distance(currPos) < 70 then
 								TimeSplice:simplemoveaway(currPos, entity.Position, 10)
 							end
 							--bomb stone chests and sticky nickels
-							if bombThings > multisettingmin and ((entity.Variant == 51 and entity.SubType == 1) or (entity.Variant == 20 and entity.SubType == 6)) and bombcount > 0 and bombcooldown < 1 and distance < 40 then
+							if bombThings > multisettingmin and ((entity.Variant == 51 and entity.SubType == 1) or (entity.Variant == 20 and entity.SubType == 6)) and bombcount > 3 and bombcooldown < 1 and distance < 40 then
 								TimeSplice:bomb(player)
 							end
 						end
@@ -838,7 +843,7 @@ function TimeSplice:tick()
 					--dont buy soul hearts if no room
 				elseif entity.Variant == 10 and player:CanPickRedHearts() == false and (entity.SubType < 3 or entity.SubType == 5 or entity.SubType == 9) then
 					--dont buy red hearts if no room
-				elseif entity.Variant == 90 and (player:GetActiveItem() < 9 or player:NeedsCharge() == false) then
+				elseif entity.Variant == 90 and player:GetActiveCharge() == activeItemCharges[playerID + 1] then
 					--dont buy batteries if no active or active fully charged
 				elseif itemprice > highestshopprice and itemprice <= player:GetNumCoins() then
 					if currentRoom:IsClear() then
@@ -1565,6 +1570,69 @@ function TimeSplice:bomb(player)
 	bombcooldown = 60
 end
 
+--take pickups
+function TimeSplice:takePickup(ent, playerEnt)
+	local var = ent.Variant
+	local sub = ent.SubType
+	local bow = playerEnt:HasCollectible(CollectibleType.COLLECTIBLE_MAGGYS_BOW)
+	if var == PickupVariant.PICKUP_HEART then
+		if sub == HeartSubType.HEART_FULL or sub == HeartSubType.HEART_SCARED then playerEnt:AddHearts(bow and 4 or 2)
+		elseif sub == HeartSubType.HEART_HALF then playerEnt:AddHearts(bow and 2 or 1)
+		elseif sub == HeartSubType.HEART_SOUL then playerEnt:AddSoulHearts(2)
+		elseif sub == HeartSubType.HEART_ETERNAL then playerEnt:AddEternalHearts(1)
+		elseif sub == HeartSubType.HEART_DOUBLEPACK then playerEnt:AddHearts(bow and 8 or 4)
+		elseif sub == HeartSubType.HEART_BLACK then playerEnt:AddBlackHearts(2)
+		elseif sub == HeartSubType.HEART_GOLDEN then playerEnt:AddGoldenHearts(1)
+		elseif sub == HeartSubType.HEART_HALF_SOUL then playerEnt:AddSoulHearts(1)
+		elseif sub == HeartSubType.HEART_BLENDED then
+			if playerEnt:CanPickRedHearts() then
+				playerEnt:AddHearts(bow and 2 or 1)
+				if playerEnt:CanPickRedHearts() then
+					playerEnt:AddHearts(bow and 2 or 1)
+				else playerEnt:AddSoulHearts(1) end
+			else playerEnt:AddSoulHearts(2) end
+		elseif sub == HeartSubType.HEART_BONE then playerEnt:AddBoneHearts(1)
+		elseif sub == HeartSubType.HEART_ROTTEN then playerEnt:AddRottenHearts(1) end
+
+	elseif var == PickupVariant.PICKUP_COIN then
+		playerEnt:AddCoins(ent:GetCoinValue())
+
+	elseif var == PickupVariant.PICKUP_KEY then
+		if sub == KeySubType.KEY_NORMAL then playerEnt:AddKeys(1)
+		elseif sub == KeySubType.KEY_GOLDEN then playerEnt:AddGoldenKey()
+		elseif sub == KeySubType.KEY_DOUBLEPACK then playerEnt:AddKeys(2)
+		elseif sub == KeySubType.KEY_CHARGED then
+			playerEnt:AddKeys(1)
+			if not playerEnt:HasCollectible(CollectibleType.COLLECTIBLE_BATTERY) then
+				playerEnt:SetActiveCharge(math.min(playerEnt:GetActiveCharge() + 6, activeItemCharges[playerID + 1]))
+			else playerEnt:SetActiveCharge(playerEnt:GetActiveCharge() + 6) end
+		end
+
+	elseif var == PickupVariant.PICKUP_BOMB then
+		if sub == BombSubType.BOMB_NORMAL then playerEnt:AddBombs(1)
+		elseif sub == BombSubType.BOMB_DOUBLEPACK then playerEnt:AddBombs(2)
+		elseif sub == BombSubType.BOMB_GOLDEN then playerEnt:AddGoldenBomb() end
+
+	elseif var == PickupVariant.PICKUP_CHEST then
+		ent:TryOpenChest(playerEnt)
+
+	elseif var == PickupVariant.PICKUP_LIL_BATTERY then
+		local charge = 0
+		if sub == BatterySubType.BATTERY_NORMAL then charge = 6
+		elseif sub == BatterySubType.BATTERY_MICRO then charge = 2
+		elseif sub == BatterySubType.BATTERY_MEGA then charge = 100 end
+
+		if not playerEnt:HasCollectible(CollectibleType.COLLECTIBLE_BATTERY) and charge ~= 100 then
+			playerEnt:SetActiveCharge(math.min(playerEnt:GetActiveCharge() + charge, activeItemCharges[playerID + 1]))
+		else playerEnt:SetActiveCharge(playerEnt:GetActiveCharge() + charge) end
+
+		sfx:Play(SoundEffect.SOUND_BATTERYCHARGE)
+	end
+
+	ent:PlayPickupSound()
+	ent:Remove()
+end
+
 --make ai move towards something, diagonally first then straight line
 --the lower the tolerance the more accurate the player tries to be
 function TimeSplice:simplemovetowards(playerpos, targetposition, tolerance)
@@ -1887,6 +1955,13 @@ function TimeSplice:onEntityKill()
 	correctionFactor = 20
 end
 
+function TimeSplice:onPreUse(type, _, player)
+	local idx = TimeSplice:getPlayerId(player)
+	if type == activeItemIds[idx + 1] then return nil end
+	activeItemIds[idx + 1] = type
+	activeItemCharges[idx + 1] = Isaac.GetItemConfig():GetCollectible(type).MaxCharges
+end
+
 TimeSplice:AddCallback(ModCallbacks.MC_POST_ENTITY_KILL, TimeSplice.onEntityKill)
 TimeSplice:AddCallback(ModCallbacks.MC_POST_KNIFE_UPDATE, TimeSplice.onKnifeUpdate)
 TimeSplice:AddCallback(ModCallbacks.MC_PRE_KNIFE_COLLISION, TimeSplice.onKnifeCollision)
@@ -1902,3 +1977,4 @@ TimeSplice:AddCallback(ModCallbacks.MC_PRE_GAME_EXIT, TimeSplice.onExit)
 TimeSplice:AddCallback(ModCallbacks.MC_POST_UPDATE, TimeSplice.tick)
 TimeSplice:AddCallback(ModCallbacks.MC_POST_NEW_LEVEL, TimeSplice.newfloor)
 TimeSplice:AddCallback(ModCallbacks.MC_USE_ITEM, TimeSplice.onUse, item)
+TimeSplice:AddCallback(ModCallbacks.MC_PRE_USE_ITEM, TimeSplice.onPreUse)
