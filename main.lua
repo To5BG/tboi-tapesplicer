@@ -40,7 +40,7 @@ local followplayer1 = true
  --0 for off, 1 for player1 only, 2 for all ais
 local getPickups = 2
 local usePillsCards = 0
-local getItems = 2
+local getItems = 0
 local getTrinkets = 0
 local useItems = 0
 local pressButtons = 2
@@ -115,6 +115,7 @@ function TimeSplice:tick()
 
 	-- remove effect if leaving the currnet room
 	if roomIndex ~= Game():GetLevel():GetCurrentRoomIndex() and counter > 30 then
+		bd = Game():GetRoom():GetBackdropType()
 		counter = 30
 	end
 	local player = Isaac.GetPlayer(playerID)
@@ -130,6 +131,7 @@ function TimeSplice:tick()
 		player:AnimateCollectible(item, "LiftItem", "PlayerPickup")
 	elseif counter == 380 then
 		player:AddControlsCooldown(110)
+		player:AddEntityFlags(EntityFlag.FLAG_NO_TARGET)
 		cloneSig = player.Position
 		clone.Position = cloneSig
 		bd = Game():GetRoom():GetBackdropType()
@@ -162,7 +164,9 @@ function TimeSplice:tick()
 				v.Target = clone
 
 				-- brighten color
-				v:SetColor(Color(1, 1, 1, 1.75, 0, 0, 0), 0, 0, false, false)
+				local brightnessFactor = 1.75
+				if v.Type == EntityType.ENTITY_THE_HAUNT then brightnessFactor = 2 end
+				v:SetColor(Color(1, 1, 1, brightnessFactor, 0, 0, 0), 0, 0, false, false)
 			end
 			if v.Type == EntityType.ENTITY_KNIFE then
 				v.Visible = false
@@ -228,6 +232,7 @@ function TimeSplice:tick()
 		end
 		player:AddCacheFlags(CacheFlag.CACHE_DAMAGE)
 		player:EvaluateItems()
+		player:ClearEntityFlags(EntityFlag.FLAG_NO_TARGET)
 		return
 	end
 
@@ -695,7 +700,7 @@ function TimeSplice:tick()
 		if (entity.Type == EntityType.ENTITY_TEAR or entity.Type == EntityType.ENTITY_BOMB) then
 			if currentRoom:GetGridCollisionAtPos(entity.Position) == GridCollisionClass.COLLISION_SOLID then
 				local gridEnt = currentRoom:GetGridEntityFromPos(entity.Position)
-				if gridEnt then
+				if gridEnt and gridEnt:ToPoop() == nil then
 					local idx = gridEnt:GetGridIndex()
 					local val = gridEntOnCol[idx]
 					if not val then
@@ -1826,7 +1831,7 @@ function TimeSplice:onSpawn(type,var,_,_,_,spawner,_)
 end
 
 function TimeSplice:onDamage(ent)
-	if counter > 30 and counter < 370 and ent.Type == EntityType.ENTITY_PLAYER then
+	if counter > 30 and counter < 385 and ent.Type == EntityType.ENTITY_PLAYER then
 		return false
 	end
 	if counter ~= 0 and clone and ent.Index == clone.Index then
