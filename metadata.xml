@@ -5,13 +5,15 @@
     <id>2839214603</id>
     <description>Remain on top of fate with this item!
 
-This item allows its user to skip time for at most ten seconds. Only the player is aware of what is happening, and everything else acts as it would have previously. The player becomes intangible and can move wherever he wants, readjusting his &quot;fated&quot; actions.
+Yet another definitely-not-so-jojo-item, this time featuring Time Skip! This item allows its user to skip time for at most ten seconds. Only the player is aware of what is happening, and everything else acts as it would have previously. The player becomes intangible and can move wherever he wants, readjusting his &quot;fated&quot; actions.
 
 The mod integrates the AIsaac bot as to mimic what the player &quot;would have done&quot; during the erased time frame, so give it some slack if it acts weirdly :p
 
 TODO: improve bot (maybe try to replace the bot with a GA heuristic approach?), add more synergies, make compatible with older game versions (at least on my testing it did not work if repentance was not installed)
 
-Huge thanks to Nato Potato for allowing me to use his AIsaac mod as the base code for the bot.</description>
+Huge thanks to Nato Potato for allowing me to use his AIsaac mod as the base code for the bot.
+
+[i][b][u]NOTE:[/u] You might get a black screen after starting a run. That is caused either by conflicting mods (only one I garnered from my own testing was the Job modpack, but there could be more), or if you are on an OS without native support (like Proton on Linux). In that case, reinstall the mod, or disable other mods that use shaders. As a last resort, you can just rename/delete the shader.xml for this mod (with the cost of effect immersion, of course...)[/b][/i]</description>
     <version>1.1</version>
     <visibility>Public</visibility>
     <tag id="Lua"/>
