@@ -2001,3 +2001,9 @@ TimeSplice:AddCallback(ModCallbacks.MC_POST_UPDATE, TimeSplice.tick)
 TimeSplice:AddCallback(ModCallbacks.MC_POST_NEW_LEVEL, TimeSplice.newfloor)
 TimeSplice:AddCallback(ModCallbacks.MC_USE_ITEM, TimeSplice.onUse, item)
 TimeSplice:AddCallback(ModCallbacks.MC_PRE_USE_ITEM, TimeSplice.onPreUse)
+TimeSplice:AddCallback(ModCallbacks.MC_POST_PLAYER_INIT, function()
+	-- shader crash fix
+	if #Isaac.FindByType(EntityType.ENTITY_PLAYER) == 0 then
+		Isaac.ExecuteCommand("reloadshaders")
+	end
+end)
