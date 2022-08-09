@@ -164,7 +164,7 @@ function TimeSplice:tick()
 				v.Target = clone
 
 				-- brighten color
-				local brightnessFactor = 1.75
+				local brightnessFactor = 2.5
 				if v.Type == EntityType.ENTITY_THE_HAUNT then brightnessFactor = 2 end
 				v:SetColor(Color(1, 1, 1, brightnessFactor, 0, 0, 0), 0, 0, false, false)
 			end
