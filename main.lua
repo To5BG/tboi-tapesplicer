@@ -1895,7 +1895,7 @@ function TimeSplice:resetVals(player)
 	end
 end
 
-local glowLookup = {0.9, 0.7, 0.7, 0.5, 0.1, 0.7, 0.9, 0.9}
+local glowLookup = {0.95, 0.8, 0.7, 0.5, 0.1, 0.2, 0.7, 0.85, 0.9}
 function TimeSplice:onShaders(s)
 	if s == "Cosmos" then
 		local offset = 1
@@ -1910,9 +1910,9 @@ function TimeSplice:onShaders(s)
 		local pos = Isaac.WorldToScreen(Isaac.GetPlayer(playerID).Position)
 		return {
 			Time = Isaac.GetFrameCount(),
-			Enabled = (counter >= 345 and counter <= 352) and 1 or 0,
+			Enabled = (counter >= 345 and counter <= 353) and 1 or 0,
 			PlayerPos = { pos.X / Isaac.GetScreenWidth(), pos.Y / Isaac.GetScreenHeight() },
-			GlowStrength = glowLookup[353 - counter]
+			GlowStrength = glowLookup[354 - counter]
 		}
 	end
 
